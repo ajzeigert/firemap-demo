@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Wildfires in Oregon</title>
+
+	<meta charset="utf-8" />
+
+	<!-- Load Leaflet library (this is a dev build) -->
+	<script src="scripts/leaflet-master/leaflet.js"></script>
+
+	<!-- Load Leaflet stylesheet -->
+	<link href="scripts/leaflet-master/leaflet.css" rel='stylesheet'>
+
+	<!-- Load the Mapbox.js library -->
+	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.9/mapbox.js'></script>
+
+	<!-- Load the mapbox css stylesheet -->
+	<link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.9/mapbox.css' rel='stylesheet' />
+
+	<!-- Load the leaflet.wms plugin library -->
+	<link href='scripts/leaflet.wms/leaflet.wms.js'></script>
+
+	<!-- Load jQuery, a handy javascript library -->
+	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+
+	<!-- Load the geocoder javascript library -->
+	<!-- <script src="https://raw.githubusercontent.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script> -->
+
+	<!-- Load the geocoder stylesheet -->
+	<!-- <link rel="stylesheet" href="https://raw.githubusercontent.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css" /> -->
+
+	<!-- Load the javascript library that allows us to parse the KML file -->
+	<script src='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.2.0/leaflet-omnivore.min.js'></script>
+
+	<!-- Load the KML file with the magic -->
+	<link rel="prefetch" src="http://rmgsc.cr.usgs.gov/outgoing/Geomac/ActiveFirePerimeters.kmz" />
+
+	<style>
+		body, html, #map {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+		}
+
+		.info {
+			padding: 10px;
+			margin: 10px;
+			border-radius: 4px;
+			background-color: white;
+		}
+
+		.info h2 {
+			padding: 0;
+			margin: 0;
+		}
+	</style>
+</head>
+<body>
+	<!-- The #map div is where the map will go -->
+	<div id="map"></div>
+
+	<script>
+				L.mapbox.accessToken = 'pk.eyJ1IjoiZ2VvZW5naW5lZXJzIiwiYSI6Ik5jWTlYaVEifQ.7sOLQAqedHptjeTlghqhAQ';
+
+				var map = L.mapbox.map('map', 'mapbox.streets');
+
+				// Load external KML using ajax/php proxy (currently not working)
+				var currentFiresData = $("#map").load('scripts/proxy.php?url=http://rmgsc.cr.usgs.gov/outgoing/Geomac/ActiveFirePerimeters.kmz', function() {});
+
+				var fdata = $.ajax({
+    			type: "GET",
+    			url: "scripts/php-simple-proxy-master/ba-simple-proxy.php?url=http://rmgsc.cr.usgs.gov/outgoing/Geomac/ActiveFirePerimeters.kmz&mode=native",
+    			dataType: 'xml',
+    			success: function (response) {
+						var currentFires = omnivore.kml(response)
+								.on('ready', function() {
+								map.fitBounds(currentFires.getBounds());
+								})
+								.addTo(map);
+
+								console.log("Current fires loaded");
+		    	}
+				});
+
+
+				// Alternate display using GeoMac WMS service
+
+				// Experimental implementation of Leaflet.WMS plugin
+
+				/*
+				// Add WMS source/layers
+				var source = L.WMS.source(
+						"http://wildfire.cr.usgs.gov/arcgis/services/geomac_dyn/MapServer/WMSServer",
+						{
+								"format": "image/png",
+								"transparent": "true",
+								"attribution": "<a href='http://www.geomac.gov/'>GeoMAC.gov</a>",
+								"tiled": tiled
+						}
+				);
+
+				var layers = {
+						'Current fires': source.getLayer("26"),
+						'Current fire perimeters': source.getLayer("25"),
+						'All current year fires': source.getLayer("22"),
+						'Thermal satellite': source.getLayer("23"),
+						'Historical fire perimeters': source.getLayer("6"),
+						'2014 fires': source.getLayer("19")
+				};
+				for (var name in layers) {
+						layers[name].addTo(map);
+				}
+
+				// Create layer control
+				L.control.layers(basemaps, layers).addTo(map);
+				*/
+				var title = new L.Control();
+
+				title.onAdd = function (map) {
+					this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+					this.update();
+					return this._div;
+					};
+					title.update = function () {
+					this._div.innerHTML = '<h2>Wildfires</h2>'
+				};
+				title.addTo(map);
+
+				// var osmGeocoder = new L.Control.OSMGeocoder({
+				// 				collapsed: false,
+				// 				position: 'bottomright',
+				// 				text: 'Find place',
+				// 	});
+
+				// osmGeocoder.addTo(map);
+
+				L.control.scale({options: {position: 'bottomleft',maxWidth: 100,metric: false,imperial: true,updateWhenIdle: false}}).addTo(map);
+
+	</script>
+</body>
+</html>
